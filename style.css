@@ -1,0 +1,421 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: #f5f5f5;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+.game-container {
+    background: #e8e8e8;
+    border: 3px solid #000;
+    border-radius: 0;
+    position: relative;
+    padding: 0;
+    text-align: center;
+    width: 100vw;
+    height: 100vh;
+    box-shadow: 8px 8px 0px #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.canvas-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.game-ui {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 5;
+    pointer-events: none;
+}
+
+#scoreContainer {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+}
+
+#healthContainer {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+.score, .health {
+    background: #d0d0d0;
+    color: #000;
+    padding: 8px 15px;
+    border: 2px solid #000;
+    border-radius: 0;
+    text-align: center;
+    min-width: 80px;
+    position: relative;
+    box-shadow: 4px 4px 0px #000;
+    font-weight: bold;
+}
+
+.shield-slots {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+    align-items: center;
+}
+
+.shield-slot {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    transition: opacity 0.3s ease;
+}
+
+.shield-slot.empty {
+    opacity: 0.3;
+}
+
+#gameCanvas {
+    border: 3px solid #000;
+    border-radius: 0;
+    background: #c8c8c8;
+    display: block;
+    margin: 0 auto;
+    box-shadow: 6px 6px 0px #000;
+    width: 450px;
+    height: 600px;
+}
+
+.game-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 0;
+    z-index: 10;
+}
+
+.overlay-content {
+    text-align: center;
+    color: #000;
+    padding: 40px;
+    background: #e8e8e8;
+    border: 3px solid #000;
+    box-shadow: 8px 8px 0px #000;
+}
+
+.overlay-content h2 {
+    font-size: 3em;
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+
+.overlay-content p {
+    font-size: 1.3em;
+    margin-bottom: 30px;
+    font-weight: 500;
+}
+
+.game-button {
+    background: #ffffff;
+    color: #000;
+    border: 3px solid #000;
+    padding: 15px 30px;
+    font-size: 1.2em;
+    font-weight: bold;
+    border-radius: 0;
+    cursor: pointer;
+    box-shadow: 6px 6px 0px #000;
+    transition: all 0.1s ease;
+    margin: 10px;
+    position: relative;
+}
+
+.game-button:hover {
+    transform: translate(2px, 2px);
+    box-shadow: 4px 4px 0px #000;
+}
+
+.game-button:active {
+    transform: translate(4px, 4px);
+    box-shadow: 2px 2px 0px #000;
+}
+
+.controls {
+    margin-top: 20px;
+    color: #666;
+    font-size: 1.1em;
+    background: #d0d0d0;
+    border: 2px solid #000;
+    padding: 15px;
+    box-shadow: 4px 4px 0px #000;
+}
+
+.controls p {
+    margin: 5px 0;
+    font-weight: 500;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.tap-instruction {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 15;
+    pointer-events: none;
+}
+
+.tap-text {
+    background: #ffffff;
+    color: #000;
+    padding: 20px 40px;
+    border: 3px solid #000;
+    box-shadow: 6px 6px 0px #000;
+    font-size: 1.5em;
+    font-weight: bold;
+    text-align: center;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Mobile-first responsive design */
+@media (max-width: 480px) {
+    .game-container {
+        margin: 0;
+        padding: 0;
+        max-width: 100%;
+        border: none;
+        box-shadow: none;
+    }
+    
+    #gameCanvas {
+        width: 100%;
+        height: auto;
+        max-width: 100%;
+        aspect-ratio: 4/5;
+    }
+    
+    .canvas-wrapper {
+        width: 100%;
+        max-width: 400px;
+    }
+    
+    .game-ui {
+        width: 100%;
+        height: 100%;
+    }
+    
+    #scoreContainer {
+        top: 15px;
+        left: 15px;
+    }
+    
+    #healthContainer {
+        top: 15px;
+        right: 15px;
+    }
+    
+    .score, .health {
+        padding: 6px 12px;
+        font-size: 0.9em;
+        min-width: 70px;
+    }
+    
+    .overlay-content h2 {
+        font-size: 2.2em;
+    }
+    
+    .overlay-content p {
+        font-size: 1.1em;
+    }
+    
+    .game-button {
+        padding: 12px 25px;
+        font-size: 1.1em;
+    }
+}
+
+@media (max-width: 360px) {
+    .game-container {
+        margin: 0;
+        padding: 0;
+        border: none;
+        box-shadow: none;
+    }
+    
+    .canvas-wrapper {
+        width: 100%;
+        max-width: 450px;
+    }
+    
+    .game-ui {
+        width: 100%;
+        height: 100%;
+    }
+    
+    #scoreContainer {
+        top: 10px;
+        left: 10px;
+    }
+    
+    #healthContainer {
+        top: 10px;
+        right: 10px;
+    }
+    
+    .score, .health {
+        padding: 5px 10px;
+        font-size: 0.8em;
+        min-width: 60px;
+    }
+    
+    .overlay-content h2 {
+        font-size: 2em;
+    }
+    
+    .overlay-content p {
+        font-size: 1em;
+    }
+}
+
+/* Boss Fight UI */
+.boss-fight-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+}
+
+.boss-fight-content {
+    background: #ffffff;
+    border: 3px solid #000;
+    box-shadow: 5px 5px 0 #000;
+    padding: 20px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+}
+
+.boss-info {
+    margin-bottom: 20px;
+    margin-top: 50px;
+    text-align: center
+}
+
+.boss-info h2 {
+    color: #2c3e50;
+    margin: 0 0 10px 0;
+    font-size: 2em;
+    text-align: center
+}
+
+.boss-lives {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #e74c3c;
+}
+
+.question-container {
+    margin: 20px 0;
+}
+
+.question-container h3 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    font-size: 1.1em;
+    line-height: 1.4;
+}
+
+.answer-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.answer-button {
+    background: #34495e;
+    color: white;
+    border: 2px solid #000;
+    box-shadow: 3px 3px 0 #000;
+    padding: 12px 8px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: all 0.1s ease;
+    border-radius: 0;
+}
+
+.answer-button:hover {
+    background: #2c3e50;
+    transform: translate(1px, 1px);
+    box-shadow: 2px 2px 0 #000;
+}
+
+.answer-button:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 #000;
+}
+
+.answer-button.correct {
+    background: #27ae60;
+}
+
+.answer-button.incorrect {
+    background: #e74c3c;
+}
+
+.boss-fight-message {
+    margin-top: 15px;
+    font-size: 1.1em;
+    font-weight: bold;
+    min-height: 30px;
+}
+
+.boss-fight-message.success {
+    color: #27ae60;
+}
+
+.boss-fight-message.error {
+    color: #e74c3c;
+}
+
+.boss-fight-message.defeat {
+    color: #f39c12;
+    font-size: 1.3em;
+}
+
