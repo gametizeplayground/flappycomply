@@ -119,7 +119,7 @@ class FlappyAuditGame {
         this.assetsLoadedCount = 0;
         
         // Game settings (optimized for 3:4 aspect ratio 450x600 with larger gap for easier gameplay)
-        this.gravity = 0.5;
+        this.gravity = 0.35; // Reduced from 0.5 for slower falling
         this.jumpPower = -7;
         this.obstacleSpeed = 2.5;
         this.obstacleGap = 200;
@@ -413,8 +413,8 @@ class FlappyAuditGame {
         this.bossDefeatTapEnabled = false;
         this.lastBossScore = 0;
         
-        // Create robot at starting position, centered vertically, moved more to the left
-        this.robot = new Robot(this.width / 6, this.height / 2 + 20, this.gravity, this.jumpPower, this.characterImages);
+        // Create robot at starting position, higher up, moved more to the left
+        this.robot = new Robot(this.width / 6, this.height / 2 - 50, this.gravity, this.jumpPower, this.characterImages);
         
         this.updateUI();
     }
@@ -633,7 +633,7 @@ class FlappyAuditGame {
         if (this.robot) {
             // Reset robot position to left middle and stop gravity
             this.robot.x = this.width / 6; // Keep at left position (same as resetGame)
-            this.robot.y = this.height / 2 + 20; // Keep at left middle
+            this.robot.y = this.height / 2 - 50; // Keep at higher position (same as resetGame)
             this.robot.velocityY = 0; // Stop falling
             this.robot.update();
         }
