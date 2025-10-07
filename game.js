@@ -18,8 +18,12 @@ class FlappyAuditGame {
         
         // Mobile detection and performance optimizations
         this.isMobile = window.innerWidth <= 480;
+        this.isMobileBrowser = this.detectMobileBrowser();
         this.audioEnabled = true;
+        this.flapSoundEnabled = !this.isMobileBrowser; // Disable flap sound on mobile browsers by default
         this.audioPool = new Map(); // Audio pooling for better performance
+        this.lastFlapTime = 0; // Throttle flap sound frequency
+        this.flapSoundThrottle = 150; // Increased throttle time for mobile browsers
         
         // Boss fight state
         this.bossFightActive = false;
@@ -223,13 +227,19 @@ class FlappyAuditGame {
         });
         
         // Load sounds with mobile optimizations
-        this.loadAudioWithOptimization('flap', 'Assets/flap.mp3', loadedCount, () => {
+        if (this.isMobileBrowser) {
+            // Skip preloading flap sound on mobile browsers to reduce lag
+            this.loadAudioLazy('flap', 'Assets/flap.mp3');
             loadedCount++;
-            if (loadedCount === this.assetsToLoad) {
-                this.assetsLoaded = true;
-                this.init();
-            }
-        });
+        } else {
+            this.loadAudioWithOptimization('flap', 'Assets/flap.mp3', loadedCount, () => {
+                loadedCount++;
+                if (loadedCount === this.assetsToLoad) {
+                    this.assetsLoaded = true;
+                    this.init();
+                }
+            });
+        }
         
         this.loadAudioWithOptimization('fall', 'Assets/fall.mp3', loadedCount, () => {
             loadedCount++;
@@ -288,6 +298,12 @@ class FlappyAuditGame {
             if (e.ctrlKey && e.key === 'm') {
                 e.preventDefault();
                 this.toggleAudio();
+            }
+            
+            // Flap sound toggle for mobile performance (Ctrl+F)
+            if (e.ctrlKey && e.key === 'f') {
+                e.preventDefault();
+                this.toggleFlapSound();
             }
         });
         
@@ -993,12 +1009,41 @@ class FlappyAuditGame {
         else if (soundName === 'bossStrike') this.bossStrikeSound = audio;
     }
     
+    // Lazy loading for mobile browsers - no preloading
+    loadAudioLazy(soundName, src) {
+        if (!this.audioEnabled) return;
+        
+        // Create audio but don't preload
+        const audio = new Audio();
+        audio.src = src;
+        audio.preload = 'none'; // No preloading
+        audio.volume = 0.6; // Lower volume for mobile
+        audio.load(); // Load metadata only
+        
+        // Store in audio pool
+        this.audioPool.set(soundName, audio);
+        
+        // Store reference for backward compatibility
+        if (soundName === 'flap') this.flapSound = audio;
+        else if (soundName === 'fall') this.fallSound = audio;
+        else if (soundName === 'bossStrike') this.bossStrikeSound = audio;
+    }
+    
     playBossStrikeSound() {
         this.playOptimizedSound('bossStrike');
     }
     
     playOptimizedSound(soundName) {
         if (!this.audioEnabled) return;
+        
+        // Throttle flap sound on mobile browsers to prevent lag
+        if (soundName === 'flap' && this.isMobileBrowser) {
+            const now = Date.now();
+            if (now - this.lastFlapTime < this.flapSoundThrottle) {
+                return; // Skip this flap sound to prevent spam
+            }
+            this.lastFlapTime = now;
+        }
         
         const audio = this.audioPool.get(soundName);
         if (!audio) return;
@@ -1025,12 +1070,29 @@ class FlappyAuditGame {
         console.log('Audio', this.audioEnabled ? 'enabled' : 'disabled');
     }
     
+    // Method to toggle flap sound specifically for mobile performance
+    toggleFlapSound() {
+        this.flapSoundEnabled = !this.flapSoundEnabled;
+        console.log('Flap sound', this.flapSoundEnabled ? 'enabled' : 'disabled');
+    }
+    
     // Method to detect if device is low-end mobile
     isLowEndMobile() {
         return this.isMobile && (
             navigator.hardwareConcurrency <= 2 || // Low CPU cores
             navigator.deviceMemory <= 2 || // Low RAM (if available)
             window.innerWidth <= 360 // Very small screen
+        );
+    }
+    
+    // Detect mobile browsers (Chrome, Safari, etc.)
+    detectMobileBrowser() {
+        const userAgent = navigator.userAgent.toLowerCase();
+        return this.isMobile && (
+            userAgent.includes('chrome') || 
+            userAgent.includes('safari') || 
+            userAgent.includes('firefox') ||
+            userAgent.includes('edge')
         );
     }
     
@@ -1199,7 +1261,7 @@ class Robot {
         this.velocityY = this.jumpPower;
         
         // Play flap sound if available and not in boss fight
-        if (this.gameInstance && this.gameInstance.gameState !== 'bossFight') {
+        if (this.gameInstance && this.gameInstance.gameState !== 'bossFight' && this.gameInstance.flapSoundEnabled) {
             this.gameInstance.playOptimizedSound('flap');
         }
     }
