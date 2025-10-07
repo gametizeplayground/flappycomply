@@ -20,7 +20,6 @@ class FlappyAuditGame {
         this.isMobile = window.innerWidth <= 480;
         this.isMobileBrowser = this.detectMobileBrowser();
         this.audioEnabled = true;
-        this.flapSoundEnabled = !this.isMobile; // Disable flap sound on mobile
         this.audioPool = new Map(); // Single-audio map for casual reuse
         this.soundPools = new Map(); // Pre-created multi-instance pools per sound
         this.soundPoolIndices = new Map(); // Round-robin indices for pools
@@ -125,11 +124,11 @@ class FlappyAuditGame {
         this.shieldImage = null;
         this.bossImage = null;
         this.pipeImage = null;
-        this.flapSound = null;
+        // flap sound removed
         this.fallSound = null;
         this.bossStrikeSound = null;
         this.assetsLoaded = false;
-        this.assetsToLoad = 10; // 4 character frames + 1 shield + 1 boss + 1 pipe + 3 sounds
+        this.assetsToLoad = 9; // 4 character frames + 1 shield + 1 boss + 1 pipe + 2 sounds (no flap)
         this.assetsLoadedCount = 0;
         
         // Game settings (optimized for 3:4 aspect ratio 450x600 with larger gap for easier gameplay)
@@ -228,19 +227,7 @@ class FlappyAuditGame {
             img.src = path;
         });
         
-        // Load sounds with mobile optimizations
-        if (this.isMobile) {
-            // Mobile: fully disable flap sound and skip loading to save resources
-            loadedCount++;
-        } else {
-            this.loadAudioWithOptimization('flap', 'Assets/flap.mp3', loadedCount, () => {
-                loadedCount++;
-                if (loadedCount === this.assetsToLoad) {
-                    this.assetsLoaded = true;
-                    this.init();
-                }
-            });
-        }
+        // Flap sound removed entirely; no loading
         
         this.loadAudioWithOptimization('fall', 'Assets/fall.mp3', loadedCount, () => {
             loadedCount++;
@@ -301,11 +288,7 @@ class FlappyAuditGame {
                 this.toggleAudio();
             }
             
-            // Flap sound toggle for mobile performance (Ctrl+F)
-            if (e.ctrlKey && e.key === 'f') {
-                e.preventDefault();
-                this.toggleFlapSound();
-            }
+        // Flap sound removed; toggle no longer needed
         });
         
         // Handle window resize for responsive canvas
@@ -1057,17 +1040,8 @@ class FlappyAuditGame {
     playOptimizedSound(soundName) {
         if (!this.audioEnabled) return;
         
-        // Fully disable flap sound on mobile
-        if (soundName === 'flap' && this.isMobile) return;
-
-        // Throttle flap sound on mobile browsers to prevent lag
-        if (soundName === 'flap' && this.isMobileBrowser) {
-            const now = Date.now();
-            if (now - this.lastFlapTime < this.flapSoundThrottle) {
-                return; // Skip this flap sound to prevent spam
-            }
-            this.lastFlapTime = now;
-        }
+        // Flap sound removed: ignore any requests
+        if (soundName === 'flap') return;
         
         // If a pool exists for this sound, use round-robin instance
         const pool = this.soundPools.get(soundName);
@@ -1108,11 +1082,7 @@ class FlappyAuditGame {
         console.log('Audio', this.audioEnabled ? 'enabled' : 'disabled');
     }
     
-    // Method to toggle flap sound specifically for mobile performance
-    toggleFlapSound() {
-        this.flapSoundEnabled = !this.flapSoundEnabled;
-        console.log('Flap sound', this.flapSoundEnabled ? 'enabled' : 'disabled');
-    }
+    // Flap sound removed; no toggle needed
     
     // Method to detect if device is low-end mobile
     isLowEndMobile() {
@@ -1298,10 +1268,7 @@ class Robot {
     jump() {
         this.velocityY = this.jumpPower;
         
-        // Play flap sound if available and not in boss fight
-        if (this.gameInstance && this.gameInstance.gameState !== 'bossFight' && this.gameInstance.flapSoundEnabled) {
-            this.gameInstance.playOptimizedSound('flap');
-        }
+        // Flap sound removed entirely
     }
     
     update() {
