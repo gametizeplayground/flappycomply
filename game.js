@@ -20,7 +20,7 @@ class FlappyAuditGame {
         this.isMobile = window.innerWidth <= 480;
         this.isMobileBrowser = this.detectMobileBrowser();
         this.audioEnabled = true;
-        this.flapSoundEnabled = !this.isMobileBrowser; // Disable flap sound on mobile browsers by default
+        this.flapSoundEnabled = !this.isMobile; // Disable flap sound on mobile
         this.audioPool = new Map(); // Single-audio map for casual reuse
         this.soundPools = new Map(); // Pre-created multi-instance pools per sound
         this.soundPoolIndices = new Map(); // Round-robin indices for pools
@@ -229,9 +229,8 @@ class FlappyAuditGame {
         });
         
         // Load sounds with mobile optimizations
-        if (this.isMobileBrowser) {
-            // Pre-create a sound pool for flap to avoid clone/create cost during gameplay
-            this.createSoundPool('flap', 'Assets/flap.mp3', 50);
+        if (this.isMobile) {
+            // Mobile: fully disable flap sound and skip loading to save resources
             loadedCount++;
         } else {
             this.loadAudioWithOptimization('flap', 'Assets/flap.mp3', loadedCount, () => {
@@ -1058,6 +1057,9 @@ class FlappyAuditGame {
     playOptimizedSound(soundName) {
         if (!this.audioEnabled) return;
         
+        // Fully disable flap sound on mobile
+        if (soundName === 'flap' && this.isMobile) return;
+
         // Throttle flap sound on mobile browsers to prevent lag
         if (soundName === 'flap' && this.isMobileBrowser) {
             const now = Date.now();
