@@ -705,6 +705,11 @@ class FlappyAuditGame {
             this.robot.update();
         }
         
+        // Update boss floating animation
+        if (this.boss) {
+            this.boss.update();
+        }
+        
         // Update particles during boss fight so POW and burst effects fade out
         this.particles.forEach((particle, index) => {
             if (typeof particle.update === 'function') {
@@ -1511,8 +1516,10 @@ class Boss {
     update() {
         this.animationFrame += this.animationSpeed;
         
-        // Add floating animation
-        this.floatOffset = Math.sin(this.animationFrame * 0.05) * 8; // Gentle floating motion
+        // Enhanced floating animation - more noticeable and smooth
+        this.floatOffset = Math.sin(this.animationFrame * 0.08) * 12; // Vertical floating motion
+        this.swayOffset = Math.sin(this.animationFrame * 0.06) * 4; // Horizontal sway for more dynamic movement
+        this.rotationOffset = Math.sin(this.animationFrame * 0.04) * 0.05; // Slight rotation for floating effect
     }
     
     draw(ctx) {
@@ -1523,56 +1530,65 @@ class Boss {
             ctx.globalAlpha = 0.5;
         }
         
+        // Apply floating transformations
+        const floatX = this.x + (this.swayOffset || 0);
+        const floatY = this.y + (this.floatOffset || 0);
+        
+        // Apply rotation for floating effect
+        if (this.rotationOffset) {
+            ctx.translate(floatX + this.width/2, floatY + this.height/2);
+            ctx.rotate(this.rotationOffset);
+            ctx.translate(-this.width/2, -this.height/2);
+        }
+        
         if (this.bossImage && this.bossImage.complete) {
-            // Draw boss image with floating animation
+            // Draw boss image with enhanced floating animation
             ctx.drawImage(
                 this.bossImage,
-                this.x,
-                this.y + (this.floatOffset || 0),
+                this.rotationOffset ? 0 : floatX,
+                this.rotationOffset ? 0 : floatY,
                 this.width,
                 this.height
             );
         } else {
-            // Fallback: Draw boss shape with floating animation
-            this.drawBossShape(ctx);
+            // Fallback: Draw boss shape with enhanced floating animation
+            this.drawBossShape(ctx, floatX, floatY);
         }
         
         ctx.restore();
     }
     
-    drawBossShape(ctx) {
-        const floatY = this.y + (this.floatOffset || 0);
-        
+    drawBossShape(ctx, floatX = this.x, floatY = this.y + (this.floatOffset || 0)) {
         // Boss body - dark grey
         ctx.fillStyle = '#2c3e50';
-        ctx.fillRect(this.x, floatY, this.width, this.height);
+        ctx.fillRect(floatX, floatY, this.width, this.height);
         
         // Boss head
         ctx.fillStyle = '#34495e';
-        ctx.fillRect(this.x + 10, floatY - 20, this.width - 20, 30);
+        ctx.fillRect(floatX + 10, floatY - 20, this.width - 20, 30);
         
         // Boss eyes
         ctx.fillStyle = '#e74c3c';
-        ctx.fillRect(this.x + 20, floatY - 15, 8, 8);
-        ctx.fillRect(this.x + 40, floatY - 15, 8, 8);
+        ctx.fillRect(floatX + 20, floatY - 15, 8, 8);
+        ctx.fillRect(floatX + 40, floatY - 15, 8, 8);
         
         // Boss mouth
         ctx.fillStyle = '#000';
-        ctx.fillRect(this.x + 30, floatY - 5, 20, 5);
+        ctx.fillRect(floatX + 30, floatY - 5, 20, 5);
         
         // Boss arms
         ctx.fillStyle = '#2c3e50';
-        ctx.fillRect(this.x - 10, floatY + 20, 15, 8);
-        ctx.fillRect(this.x + this.width - 5, floatY + 20, 15, 8);
+        ctx.fillRect(floatX - 10, floatY + 20, 15, 8);
+        ctx.fillRect(floatX + this.width - 5, floatY + 20, 15, 8);
         
         // Boss legs
-        ctx.fillRect(this.x + 15, floatY + this.height, 12, 15);
-        ctx.fillRect(this.x + this.width - 27, floatY + this.height, 12, 15);
+        ctx.fillRect(floatX + 15, floatY + this.height, 12, 15);
+        ctx.fillRect(floatX + this.width - 27, floatY + this.height, 12, 15);
         
         // Boss border
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 3;
-        ctx.strokeRect(this.x, floatY, this.width, this.height);
+        ctx.strokeRect(floatX, floatY, this.width, this.height);
     }
 }
 
