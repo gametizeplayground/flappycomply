@@ -221,12 +221,12 @@ body {
         width: 100%;
         height: auto;
         max-width: 100%;
-        aspect-ratio: 4/5;
+        aspect-ratio: 5/8; /* 375/600 ratio for taller mobile canvas */
     }
     
     .canvas-wrapper {
         width: 100%;
-        max-width: 400px;
+        max-width: 375px;
     }
     
     .game-ui {
@@ -274,7 +274,7 @@ body {
     
     .canvas-wrapper {
         width: 100%;
-        max-width: 450px;
+        max-width: 375px;
     }
     
     .game-ui {

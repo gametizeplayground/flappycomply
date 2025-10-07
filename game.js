@@ -114,8 +114,11 @@ class FlappyAuditGame {
         this.shieldImage = null;
         this.bossImage = null;
         this.pipeImage = null;
+        this.flapSound = null;
+        this.fallSound = null;
+        this.bossStrikeSound = null;
         this.assetsLoaded = false;
-        this.assetsToLoad = 7; // 4 character frames + 1 shield + 1 boss + 1 pipe
+        this.assetsToLoad = 10; // 4 character frames + 1 shield + 1 boss + 1 pipe + 3 sounds
         this.assetsLoadedCount = 0;
         
         // Game settings (optimized for 3:4 aspect ratio 450x600 with larger gap for easier gameplay)
@@ -157,11 +160,11 @@ class FlappyAuditGame {
         const isMobile = window.innerWidth <= 480;
         
         if (isMobile) {
-            // 4:5 aspect ratio for mobile: 400x500
-            this.canvas.width = 400;
-            this.canvas.height = 500;
-            this.width = 400;
-            this.height = 500;
+            // Taller aspect ratio for mobile: 375x600 (better utilizes mobile screen space)
+            this.canvas.width = 375;
+            this.canvas.height = 600;
+            this.width = 375;
+            this.height = 600;
         } else {
             // 3:4 aspect ratio for desktop: 450x600
             this.canvas.width = 450;
@@ -184,6 +187,7 @@ class FlappyAuditGame {
         
         let loadedCount = 0;
         
+        // Load images
         imagePaths.forEach((path, index) => {
             const img = new Image();
             img.onload = () => {
@@ -212,6 +216,63 @@ class FlappyAuditGame {
             };
             img.src = path;
         });
+        
+        // Load flap sound
+        this.flapSound = new Audio('Assets/flap.mp3');
+        this.flapSound.preload = 'auto';
+        this.flapSound.oncanplaythrough = () => {
+            loadedCount++;
+            if (loadedCount === this.assetsToLoad) {
+                this.assetsLoaded = true;
+                this.init();
+            }
+        };
+        this.flapSound.onerror = () => {
+            console.warn('Flap sound failed to load');
+            loadedCount++;
+            if (loadedCount === this.assetsToLoad) {
+                this.assetsLoaded = true;
+                this.init();
+            }
+        };
+        
+        // Load fall sound
+        this.fallSound = new Audio('Assets/fall.mp3');
+        this.fallSound.preload = 'auto';
+        this.fallSound.oncanplaythrough = () => {
+            loadedCount++;
+            if (loadedCount === this.assetsToLoad) {
+                this.assetsLoaded = true;
+                this.init();
+            }
+        };
+        this.fallSound.onerror = () => {
+            console.warn('Fall sound failed to load');
+            loadedCount++;
+            if (loadedCount === this.assetsToLoad) {
+                this.assetsLoaded = true;
+                this.init();
+            }
+        };
+        
+        // Load boss strike sound
+        this.bossStrikeSound = new Audio('Assets/bossstrike.mp3');
+        this.bossStrikeSound.preload = 'auto';
+        this.bossStrikeSound.oncanplaythrough = () => {
+            loadedCount++;
+            if (loadedCount === this.assetsToLoad) {
+                this.assetsLoaded = true;
+                this.init();
+            }
+        };
+        this.bossStrikeSound.onerror = () => {
+            console.warn('Boss strike sound failed to load');
+            loadedCount++;
+            if (loadedCount === this.assetsToLoad) {
+                this.assetsLoaded = true;
+                this.init();
+            }
+        };
     }
     
     init() {
@@ -320,6 +381,9 @@ class FlappyAuditGame {
         if (this.boss && this.bossAttackPhase) {
             this.bossHits++;
             
+            // Play boss strike sound
+            this.playBossStrikeSound();
+            
             // Create blast effect
             this.createBlastEffect(this.boss.x + this.boss.width/2, this.boss.y + this.boss.height/2);
             
@@ -414,7 +478,7 @@ class FlappyAuditGame {
         this.lastBossScore = 0;
         
         // Create robot at starting position, higher up, moved more to the left
-        this.robot = new Robot(this.width / 6, this.height / 2 - 50, this.gravity, this.jumpPower, this.characterImages);
+        this.robot = new Robot(this.width / 6, this.height / 2 - 50, this.gravity, this.jumpPower, this.characterImages, this);
         
         this.updateUI();
     }
@@ -561,6 +625,9 @@ class FlappyAuditGame {
             buttons[selectedIndex].classList.add('correct');
             this.bossFightMessage.textContent = 'Correct! You hit the boss!';
             this.bossFightMessage.className = 'boss-fight-message success';
+            
+            // Play boss strike sound
+            this.playBossStrikeSound();
             
             // Create hit particles (use blast effect for consistency)
             this.createBlastEffect(this.boss.x + this.boss.width/2, this.boss.y + this.boss.height/2);
@@ -838,6 +905,7 @@ class FlappyAuditGame {
         
         // Check if robot is out of bounds
         if (this.robot.y < 0 || this.robot.y > this.height) {
+            this.playFallSound(); // Play fall sound when going out of bounds
             this.gameOver();
         }
     }
@@ -862,6 +930,7 @@ class FlappyAuditGame {
             });
             
             if (topCollision || bottomCollision) {
+                this.playFallSound(); // Play fall sound when hitting pipe
                 this.gameOver();
                 return; // Exit immediately to prevent multiple calls
             }
@@ -897,6 +966,26 @@ class FlappyAuditGame {
     createParticles(x, y, color) {
         for (let i = 0; i < 10; i++) {
             this.particles.push(new Particle(x, y, color));
+        }
+    }
+    
+    playFallSound() {
+        if (this.fallSound) {
+            this.fallSound.currentTime = 0; // Reset to beginning
+            this.fallSound.play().catch(e => {
+                // Silently handle audio play errors
+                console.log('Fall sound play failed:', e);
+            });
+        }
+    }
+    
+    playBossStrikeSound() {
+        if (this.bossStrikeSound) {
+            this.bossStrikeSound.currentTime = 0; // Reset to beginning
+            this.bossStrikeSound.play().catch(e => {
+                // Silently handle audio play errors
+                console.log('Boss strike sound play failed:', e);
+            });
         }
     }
     
@@ -1042,7 +1131,7 @@ class FlappyAuditGame {
 
 // Robot class
 class Robot {
-    constructor(x, y, gravity, jumpPower, characterImages = []) {
+    constructor(x, y, gravity, jumpPower, characterImages = [], gameInstance = null) {
         this.x = x;
         this.y = y;
         this.width = 50;
@@ -1052,6 +1141,7 @@ class Robot {
         this.jumpPower = jumpPower;
         this.rotation = 0;
         this.characterImages = characterImages;
+        this.gameInstance = gameInstance;
         
         // Animation properties
         this.currentFrame = 0;
@@ -1062,6 +1152,15 @@ class Robot {
     
     jump() {
         this.velocityY = this.jumpPower;
+        
+        // Play flap sound if available and not in boss fight
+        if (this.gameInstance && this.gameInstance.flapSound && this.gameInstance.gameState !== 'bossFight') {
+            this.gameInstance.flapSound.currentTime = 0; // Reset to beginning
+            this.gameInstance.flapSound.play().catch(e => {
+                // Silently handle audio play errors (e.g., user hasn't interacted with page yet)
+                console.log('Audio play failed:', e);
+            });
+        }
     }
     
     update() {
