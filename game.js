@@ -16,6 +16,11 @@ class FlappyAuditGame {
         this.maxHealth = 3;
         this.isFirstGame = true; // Track if this is the first game
         
+        // Mobile detection and performance optimizations
+        this.isMobile = window.innerWidth <= 480;
+        this.audioEnabled = true;
+        this.audioPool = new Map(); // Audio pooling for better performance
+        
         // Boss fight state
         this.bossFightActive = false;
         this.boss = null;
@@ -217,62 +222,30 @@ class FlappyAuditGame {
             img.src = path;
         });
         
-        // Load flap sound
-        this.flapSound = new Audio('Assets/flap.mp3');
-        this.flapSound.preload = 'auto';
-        this.flapSound.oncanplaythrough = () => {
+        // Load sounds with mobile optimizations
+        this.loadAudioWithOptimization('flap', 'Assets/flap.mp3', loadedCount, () => {
             loadedCount++;
             if (loadedCount === this.assetsToLoad) {
                 this.assetsLoaded = true;
                 this.init();
             }
-        };
-        this.flapSound.onerror = () => {
-            console.warn('Flap sound failed to load');
-            loadedCount++;
-            if (loadedCount === this.assetsToLoad) {
-                this.assetsLoaded = true;
-                this.init();
-            }
-        };
+        });
         
-        // Load fall sound
-        this.fallSound = new Audio('Assets/fall.mp3');
-        this.fallSound.preload = 'auto';
-        this.fallSound.oncanplaythrough = () => {
+        this.loadAudioWithOptimization('fall', 'Assets/fall.mp3', loadedCount, () => {
             loadedCount++;
             if (loadedCount === this.assetsToLoad) {
                 this.assetsLoaded = true;
                 this.init();
             }
-        };
-        this.fallSound.onerror = () => {
-            console.warn('Fall sound failed to load');
-            loadedCount++;
-            if (loadedCount === this.assetsToLoad) {
-                this.assetsLoaded = true;
-                this.init();
-            }
-        };
+        });
         
-        // Load boss strike sound
-        this.bossStrikeSound = new Audio('Assets/bossstrike.mp3');
-        this.bossStrikeSound.preload = 'auto';
-        this.bossStrikeSound.oncanplaythrough = () => {
+        this.loadAudioWithOptimization('bossStrike', 'Assets/bossstrike.mp3', loadedCount, () => {
             loadedCount++;
             if (loadedCount === this.assetsToLoad) {
                 this.assetsLoaded = true;
                 this.init();
             }
-        };
-        this.bossStrikeSound.onerror = () => {
-            console.warn('Boss strike sound failed to load');
-            loadedCount++;
-            if (loadedCount === this.assetsToLoad) {
-                this.assetsLoaded = true;
-                this.init();
-            }
-        };
+        });
     }
     
     init() {
@@ -309,6 +282,12 @@ class FlappyAuditGame {
                     console.log('Boss fight triggered for testing!');
                     this.startBossFight();
                 }
+            }
+            
+            // Audio toggle for performance (Ctrl+M)
+            if (e.ctrlKey && e.key === 'm') {
+                e.preventDefault();
+                this.toggleAudio();
             }
         });
         
@@ -400,7 +379,9 @@ class FlappyAuditGame {
     createBlastEffect(x, y) {
         // Create POW! burst effect with particles
         const colors = ['#ff0000', '#ff6600', '#ffff00', '#ffffff', '#ffaa00'];
-        for (let i = 0; i < 12; i++) { // More particles for POW effect
+        // Reduce particle count on mobile for better performance
+        const particleCount = this.isMobile ? 6 : 12;
+        for (let i = 0; i < particleCount; i++) {
             const color = colors[Math.floor(Math.random() * colors.length)];
             const particle = new PowerParticle(x, y, color);
             this.particles.push(particle);
@@ -535,7 +516,7 @@ class FlappyAuditGame {
         this.bossEntranceTimer = 0;
         
         // Create boss off-screen to the right, centered vertically (adjusted for 3x size)
-        this.boss = new Boss(this.width + 100, this.height / 2 - 100, this.bossImage);
+        this.boss = new Boss(this.width + 100, this.height / 2 - 100, this.bossImage, this);
         
         // Update UI for entrance phase
         this.bossName.textContent = this.getRandomBossName();
@@ -969,29 +950,88 @@ class FlappyAuditGame {
     }
     
     createParticles(x, y, color) {
-        for (let i = 0; i < 10; i++) {
+        // Reduce particle count on mobile for better performance
+        const particleCount = this.isMobile ? 5 : 10;
+        for (let i = 0; i < particleCount; i++) {
             this.particles.push(new Particle(x, y, color));
         }
     }
     
     playFallSound() {
-        if (this.fallSound) {
-            this.fallSound.currentTime = 0; // Reset to beginning
-            this.fallSound.play().catch(e => {
-                // Silently handle audio play errors
-                console.log('Fall sound play failed:', e);
+        this.playOptimizedSound('fall');
+    }
+    
+    loadAudioWithOptimization(soundName, src, loadedCount, onLoad) {
+        if (!this.audioEnabled) {
+            onLoad();
+            return;
+        }
+        
+        const audio = new Audio(src);
+        
+        // Mobile optimizations
+        if (this.isMobile) {
+            audio.preload = 'metadata'; // Lighter preload for mobile
+            audio.volume = 0.7; // Slightly lower volume for mobile
+        } else {
+            audio.preload = 'auto';
+            audio.volume = 1.0;
+        }
+        
+        // Store in audio pool for reuse
+        this.audioPool.set(soundName, audio);
+        
+        audio.oncanplaythrough = onLoad;
+        audio.onerror = () => {
+            console.warn(`${soundName} sound failed to load`);
+            onLoad();
+        };
+        
+        // Store reference for backward compatibility
+        if (soundName === 'flap') this.flapSound = audio;
+        else if (soundName === 'fall') this.fallSound = audio;
+        else if (soundName === 'bossStrike') this.bossStrikeSound = audio;
+    }
+    
+    playBossStrikeSound() {
+        this.playOptimizedSound('bossStrike');
+    }
+    
+    playOptimizedSound(soundName) {
+        if (!this.audioEnabled) return;
+        
+        const audio = this.audioPool.get(soundName);
+        if (!audio) return;
+        
+        // Mobile optimization: clone audio for overlapping sounds
+        if (this.isMobile) {
+            const audioClone = audio.cloneNode();
+            audioClone.volume = audio.volume;
+            audioClone.currentTime = 0;
+            audioClone.play().catch(e => {
+                console.log(`${soundName} sound play failed:`, e);
+            });
+        } else {
+            audio.currentTime = 0;
+            audio.play().catch(e => {
+                console.log(`${soundName} sound play failed:`, e);
             });
         }
     }
     
-    playBossStrikeSound() {
-        if (this.bossStrikeSound) {
-            this.bossStrikeSound.currentTime = 0; // Reset to beginning
-            this.bossStrikeSound.play().catch(e => {
-                // Silently handle audio play errors
-                console.log('Boss strike sound play failed:', e);
-            });
-        }
+    // Method to toggle audio on/off for performance
+    toggleAudio() {
+        this.audioEnabled = !this.audioEnabled;
+        console.log('Audio', this.audioEnabled ? 'enabled' : 'disabled');
+    }
+    
+    // Method to detect if device is low-end mobile
+    isLowEndMobile() {
+        return this.isMobile && (
+            navigator.hardwareConcurrency <= 2 || // Low CPU cores
+            navigator.deviceMemory <= 2 || // Low RAM (if available)
+            window.innerWidth <= 360 // Very small screen
+        );
     }
     
     render() {
@@ -1159,12 +1199,8 @@ class Robot {
         this.velocityY = this.jumpPower;
         
         // Play flap sound if available and not in boss fight
-        if (this.gameInstance && this.gameInstance.flapSound && this.gameInstance.gameState !== 'bossFight') {
-            this.gameInstance.flapSound.currentTime = 0; // Reset to beginning
-            this.gameInstance.flapSound.play().catch(e => {
-                // Silently handle audio play errors (e.g., user hasn't interacted with page yet)
-                console.log('Audio play failed:', e);
-            });
+        if (this.gameInstance && this.gameInstance.gameState !== 'bossFight') {
+            this.gameInstance.playOptimizedSound('flap');
         }
     }
     
@@ -1502,12 +1538,13 @@ class PowText {
 
 // Boss class
 class Boss {
-    constructor(x, y, bossImage) {
+    constructor(x, y, bossImage, gameInstance = null) {
         this.x = x;
         this.y = y;
         this.width = 250; // 3x bigger (80 * 3)
         this.height = 240; // 3x bigger (100 * 3)
         this.bossImage = bossImage;
+        this.gameInstance = gameInstance;
         this.flash = false;
         this.animationFrame = 0;
         this.animationSpeed = 0.1;
@@ -1516,10 +1553,18 @@ class Boss {
     update() {
         this.animationFrame += this.animationSpeed;
         
-        // Enhanced floating animation - more noticeable and smooth
-        this.floatOffset = Math.sin(this.animationFrame * 0.08) * 12; // Vertical floating motion
-        this.swayOffset = Math.sin(this.animationFrame * 0.06) * 4; // Horizontal sway for more dynamic movement
-        this.rotationOffset = Math.sin(this.animationFrame * 0.04) * 0.05; // Slight rotation for floating effect
+        // Optimized floating animation for mobile performance
+        if (this.gameInstance && this.gameInstance.isMobile) {
+            // Simplified animation for mobile to reduce lag
+            this.floatOffset = Math.sin(this.animationFrame * 0.06) * 8; // Reduced complexity
+            this.swayOffset = Math.sin(this.animationFrame * 0.04) * 2; // Less horizontal movement
+            this.rotationOffset = 0; // Disable rotation on mobile for performance
+        } else {
+            // Full animation for desktop
+            this.floatOffset = Math.sin(this.animationFrame * 0.08) * 12; // Vertical floating motion
+            this.swayOffset = Math.sin(this.animationFrame * 0.06) * 4; // Horizontal sway for more dynamic movement
+            this.rotationOffset = Math.sin(this.animationFrame * 0.04) * 0.05; // Slight rotation for floating effect
+        }
     }
     
     draw(ctx) {
