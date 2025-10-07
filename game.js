@@ -21,7 +21,9 @@ class FlappyAuditGame {
         this.isMobileBrowser = this.detectMobileBrowser();
         this.audioEnabled = true;
         this.flapSoundEnabled = !this.isMobileBrowser; // Disable flap sound on mobile browsers by default
-        this.audioPool = new Map(); // Audio pooling for better performance
+        this.audioPool = new Map(); // Single-audio map for casual reuse
+        this.soundPools = new Map(); // Pre-created multi-instance pools per sound
+        this.soundPoolIndices = new Map(); // Round-robin indices for pools
         this.lastFlapTime = 0; // Throttle flap sound frequency
         this.flapSoundThrottle = 150; // Increased throttle time for mobile browsers
         
@@ -228,8 +230,8 @@ class FlappyAuditGame {
         
         // Load sounds with mobile optimizations
         if (this.isMobileBrowser) {
-            // Skip preloading flap sound on mobile browsers to reduce lag
-            this.loadAudioLazy('flap', 'Assets/flap.mp3');
+            // Pre-create a sound pool for flap to avoid clone/create cost during gameplay
+            this.createSoundPool('flap', 'Assets/flap.mp3', 50);
             loadedCount++;
         } else {
             this.loadAudioWithOptimization('flap', 'Assets/flap.mp3', loadedCount, () => {
@@ -1028,6 +1030,26 @@ class FlappyAuditGame {
         else if (soundName === 'fall') this.fallSound = audio;
         else if (soundName === 'bossStrike') this.bossStrikeSound = audio;
     }
+
+    // Create a preloaded pool of Audio elements for frequent sounds (mobile optimization)
+    createSoundPool(soundName, src, poolSize = 16) {
+        if (!this.audioEnabled) return;
+        const size = Math.max(1, poolSize | 0);
+        const pool = new Array(size);
+        for (let i = 0; i < size; i++) {
+            const audio = new Audio();
+            audio.src = src;
+            // Keep preload light to reduce memory; metadata is enough to be ready quickly
+            audio.preload = 'metadata';
+            audio.volume = 0.6; // slightly lower on mobile
+            audio.crossOrigin = 'anonymous';
+            pool[i] = audio;
+        }
+        this.soundPools.set(soundName, pool);
+        this.soundPoolIndices.set(soundName, 0);
+        // Also set primary reference for existing calls
+        if (soundName === 'flap') this.flapSound = pool[0];
+    }
     
     playBossStrikeSound() {
         this.playOptimizedSound('bossStrike');
@@ -1045,6 +1067,20 @@ class FlappyAuditGame {
             this.lastFlapTime = now;
         }
         
+        // If a pool exists for this sound, use round-robin instance
+        const pool = this.soundPools.get(soundName);
+        if (pool && pool.length > 0) {
+            let idx = this.soundPoolIndices.get(soundName) || 0;
+            const audio = pool[idx];
+            idx = (idx + 1) % pool.length;
+            this.soundPoolIndices.set(soundName, idx);
+            audio.currentTime = 0;
+            audio.play().catch(e => {
+                console.log(`${soundName} sound play (pool) failed:`, e);
+            });
+            return;
+        }
+
         const audio = this.audioPool.get(soundName);
         if (!audio) return;
         
